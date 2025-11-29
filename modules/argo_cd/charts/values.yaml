@@ -1,0 +1,6 @@
+djangoApp:
+  name: django-app
+  namespace: default
+  repoURL: https://github.com/Ruslan-Isupov/goit-devops.git
+  targetRevision: lesson-8-9
+  path: charts/django-app

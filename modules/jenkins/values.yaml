@@ -1,0 +1,113 @@
+controller:
+  # Адмін
+  admin:
+    username: "admin"
+    password: "admin123"
+
+  # Таймери (дублюємо тут для надійності)
+  startupProbe:
+    failureThreshold: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+  livenessProbe:
+    initialDelaySeconds: 180
+    failureThreshold: 5
+    timeoutSeconds: 5
+  readinessProbe:
+    initialDelaySeconds: 60
+    failureThreshold: 3
+
+  # Сервіс
+  service:
+    type: LoadBalancer
+    port: 80
+    targetPort: 8080
+
+  # Ресурси
+  resources:
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+
+  # Диск
+  persistentVolume:
+    enabled: true
+    storageClass: "ebs-sc"
+    size: "10Gi"
+
+  # Service Account (ВАЖЛИВО: вимикаємо створення Helm-ом)
+  serviceAccount:
+    name: jenkins-sa
+    create: false
+
+  # Плагіни
+  installPlugins:
+    - kubernetes:latest
+    - workflow-aggregator:latest
+    - git:latest
+    - configuration-as-code:latest
+    - credentials-binding:latest
+    - github:latest
+    - docker-plugin:latest
+    - docker-workflow:latest
+    - job-dsl:latest
+    - amazon-ecr:latest
+    - pipeline-stage-view:latest
+
+  # 7. JCasC - Автоматичне налаштування
+  JCasC:
+    configScripts:
+      credentials: |
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - usernamePassword:
+                      scope: GLOBAL
+                      id: github-token
+                      username: Ruslan-Isupov
+                      password: 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
+                      description: GitHub PAT
+
+      seed-job: |
+        jobs:
+          - script: >
+              job('seed-job') {
+                description('Job to generate pipeline for Django project')
+                scm {
+                  git {
+                    remote {
+                      url('https://github.com/Ruslan-Isupov/goit-devops.git')
+                      credentials('github-token')
+                    }
+                    # ВАЖЛИВО: Вказуємо нову гілку
+                    branches('*/lesson-8-9')
+                  }
+                }
+                steps {
+                  dsl {
+                    text('''
+                      pipelineJob("django-pipeline") {
+                        definition {
+                          cpsScm {
+                            scm {
+                              git {
+                                remote {
+                                  url("https://github.com/Ruslan-Isupov/goit-devops.git")
+                                  credentials("github-token")
+                                }
+                                # ВАЖЛИВО: Тут теж нова гілка
+                                branches("*/lesson-8-9")
+                                scriptPath("Jenkinsfile")
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ''')
+                  }
+                }
+              }

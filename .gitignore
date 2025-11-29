@@ -1,0 +1,19 @@
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+.terraform.lock.hcl
+crash.log
+*.pem
+id_rsa
+creds.json
+EOFcat <<EOF > .gitignore
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+.terraform.lock.hcl
+crash.log
+*.pem
+id_rsa
+creds.json
