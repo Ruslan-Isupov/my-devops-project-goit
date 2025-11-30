@@ -111,3 +111,45 @@ module "argo_cd" {
   source       = "./modules/argo_cd"  # <--- Змініть на підкреслення (_)
   cluster_name = module.eks.eks_cluster_name
 }
+
+# --- 6 RDS ---
+module "rds" {
+  source = "./modules/rds"
+
+  name = "myapp-db"
+  
+  # --- ПЕРЕМИКАЧ ---
+  use_aurora = false 
+
+  # --- Налаштування Aurora ---
+  engine_cluster                = "aurora-postgresql"
+  engine_version_cluster        = "15.3"
+  parameter_group_family_aurora = "aurora-postgresql15"
+  aurora_replica_count          = 1
+
+  # --- Налаштування RDS ---
+  engine                     = "postgres"
+  engine_version             = "17.2"
+  parameter_group_family_rds = "postgres17"
+
+  # --- Спільні ---
+  instance_class      = "db.t3.micro"
+  allocated_storage   = 20
+  db_name             = "myapp"
+  username            = "postgres"
+  password            = "admin123AWS23"
+  multi_az       = false
+  vpc_id              = module.vpc.vpc_id
+  subnet_private_ids  = module.vpc.private_subnets
+  subnet_public_ids   = module.vpc.public_subnets
+  publicly_accessible = true
+
+
+  backup_retention_period = 1 
+
+
+  tags = {
+    Environment = "dev"
+    Project     = "myapp"
+  }
+}

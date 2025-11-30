@@ -40,3 +40,14 @@ output "argocd_password_command" {
   description = "Виконайте цю команду, щоб отримати пароль від Argo CD"
   value = module.argo_cd.admin_password
 }
+
+
+output "rds_endpoint" {
+  description = "RDS Connection Endpoint"
+  value       = module.rds.endpoint
+}
+
+output "rds_port" {
+  description = "RDS Port"
+  value       = module.rds.port
+}
