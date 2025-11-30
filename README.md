@@ -1,74 +1,129 @@
-# 🚀 AWS GitOps CI/CD Pipeline: Jenkins, Kaniko, Argo CD (Lesson 8)
+# 💾 Universal RDS Terraform Module
 
-This repository contains a modular Terraform configuration for deploying a complete CI/CD pipeline on **AWS EKS** using the **GitOps** approach.
+Цей модуль дозволяє розгортати бази даних в AWS, підтримуючи два режими роботи:
+1. **Standard RDS Instance** (для розробки та Free Tier).
+2. **Amazon Aurora Cluster** (для продакшену та високої доступності).
 
-Our solution ensures automatic **Docker image building** (Kaniko), its **publication to Amazon ECR**, and **continuous deployment** to Kubernetes using Argo CD.
-
-## 1. 📁 Project Structure & Setup
-
-| Directory / File     | Purpose                                                                        |
-| :------------------- | :----------------------------------------------------------------------------- |
-| `main.tf`            | Root configuration. Calls EKS, Jenkins, and Argo CD modules.                   |
-| `modules/jenkins/`   | Installs Jenkins via Helm. Configures **IRSA** and stability probes.           |
-| `modules/argo_cd/`   | Installs Argo CD and sets up the **Application** resource.                     |
-| `charts/django-app/` | Helm chart for the Django application.                                         |
-| **`Jenkinsfile`**    | **CI Pipeline Script:** Defines the build, ECR push, and Git tag update logic. |
-| `backend.tf`         | Defines the remote state storage (S3 + DynamoDB for locking).                  |
+Вибір режиму здійснюється одним прапорцем: `use_aurora`.
 
 ---
 
-## 2. 🚀 Deployment and Execution
+## 🚀 Приклад Використання (Usage)
 
-### A. Core Infrastructure Deployment (Terraform)
+### 1. Звичайна RDS (Free Tier)
+Використовується для економії коштів. Створює один інстанс.
 
-All commands should be run from the root directory (`lesson-8`).
+```hcl
+module "rds" {
+  source = "./modules/rds"
 
-| Step              | Command             | Description                                                                 |
-| :---------------- | :------------------ | :-------------------------------------------------------------------------- |
-| **1. Initialize** | `terraform init`    | Downloads providers and **migrates local state to S3**.                     |
-| **2. Apply**      | `terraform apply`   | Creates/Updates all cloud and Kubernetes resources (EKS, Jenkins, Argo CD). |
-| **3. Destroy**    | `terraform destroy` | **Removes all AWS resources.** (**CRITICAL** for cost management).          |
+  name       = "myapp-db"
+  use_aurora = false  # <--- Головний перемикач (Вимкнено)
 
-### B. EKS Access and Monitoring
+  # Параметри RDS
+  engine                     = "postgres"
+  engine_version             = "14.10"
+  parameter_group_family_rds = "postgres14"
+  instance_class             = "db.t3.micro"  # Free Tier
+  allocated_storage          = 20
 
-The EKS token expires every 15 minutes. Always refresh it before using `kubectl`:
+  # Мережа та Доступи
+  vpc_id              = module.vpc.vpc_id
+  subnet_private_ids  = module.vpc.private_subnets
+  subnet_public_ids   = module.vpc.public_subnets
+  publicly_accessible = true
+  
+  username            = "postgres"
+  password            = "admin123AWS23"
 
-```bash
-aws eks --region eu-central-1 update-kubeconfig --name lesson-8-cluster
+  # Вимикаємо зайве для економії
+  multi_az                = false
+  backup_retention_period = 0
+}
+```
+
+### 2. Amazon Aurora Cluster (High Availability)
+Створює кластер з автоматичною реплікацією.
+
+```hcl
+module "rds" {
+  source = "./modules/rds"
+
+  name       = "myapp-aurora"
+  use_aurora = true   # <--- Головний перемикач (Увімкнено)
+
+  # Параметри Aurora
+  engine_cluster                = "aurora-postgresql"
+  engine_version_cluster        = "15.3"
+  parameter_group_family_aurora = "aurora-postgresql15"
+  
+  aurora_replica_count          = 1  # 1 Writer + 1 Reader
+  instance_class                = "db.t3.medium"
+
+  # Мережа та Доступи (ті самі, що й для RDS)
+  vpc_id              = module.vpc.vpc_id
+  subnet_private_ids  = module.vpc.private_subnets
+  # ...
+}
 ```
 
 ---
 
-## 3. ✅ Verification (CI/CD Flow Check)
+## ⚙️ Опис Змінних (Variables)
 
-### 🔑 Jenkins Job Check (CI Verification)
+| Змінна | Тип | Default | Опис |
+| :--- | :--- | :--- | :--- |
+| **`use_aurora`** | `bool` | `false` | **Головна логіка.** `true` створює Aurora Cluster, `false` створює звичайну RDS. |
+| **`name`** | `string` | - | Унікальний ідентифікатор для ресурсів БД. |
+| **`vpc_id`** | `string` | - | ID VPC, де створюється Security Group. |
+| **`subnet_private_ids`** | `list` | - | Список ID приватних підмереж для розміщення БД. |
+| **`username`** | `string` | - | Логін головного користувача. |
+| **`password`** | `string` | - | Пароль (чутливі дані). |
+| **`instance_class`** | `string` | `db.t3.medium` | Тип віртуальної машини (CPU/RAM). |
+| **`publicly_accessible`**| `bool` | `false` | Чи дозволяти доступ з інтернету. |
 
-1.  **Run Main Pipeline:** The **`django-pipeline`** runs the complete CI process.
-2.  **Result:** The pipeline will build the Docker image and, in the final stage (`Update Chart Tag in Git`), it will **commit the new image tag** to the `lesson-8-9` branch.
+### Змінні для Standard RDS (`use_aurora = false`)
+| Змінна | Default | Опис |
+| :--- | :--- | :--- |
+| `engine` | `postgres` | Тип рушія (postgres, mysql). |
+| `engine_version` | `14.7` | Версія рушія. |
+| `allocated_storage` | `20` | Розмір диска (GB). |
 
-### 🌐 Argo CD Verification (CD Check)
-
-This verifies the GitOps deployment is working automatically.
-
-1.  **Access Argo CD:** Use the LoadBalancer URL or `kubectl port-forward svc/argocd-server -n argocd 8081:443`.
-2.  **Credentials:** `admin` / `Password retrieved via kubectl`
-3.  **Final Result:** The **`django-app`** tile must automatically change to **`Synced`** and **`Healthy`** after Jenkins pushes the new tag to Git.
+### Змінні для Aurora (`use_aurora = true`)
+| Змінна | Default | Опис |
+| :--- | :--- | :--- |
+| `engine_cluster` | `aurora-postgresql` | Тип рушія кластера. |
+| `engine_version_cluster` | `15.3` | Версія Aurora. |
+| `aurora_replica_count` | `1` | Кількість реплік для читання (Readers). |
 
 ---
 
-## 📝 Key GitOps Configuration Details
+## 🛠️ Як змінювати конфігурацію (How-to)
 
-| Parameter               | Value / Location                                   | Description                                   |
-| :---------------------- | :------------------------------------------------- | :-------------------------------------------- |
-| **Git Repository**      | `https://github.com/Ruslan-Isupov/goit-devops.git` | Source of truth for both Jenkins and Argo CD. |
-| **Target Branch**       | `lesson-8-9`                                       | The branch used for all CI/CD operations.     |
-| **ECR Registry**        | `155466261957.dkr.ecr.eu-central-1.amazonaws.com`  | Destination for the built Docker image.       |
-| **K8s Service Account** | `jenkins-sa`                                       | Annotated with the IRSA role for ECR access.  |
+### 1. Як змінити тип БД (Aurora <-> RDS)?
+Змініть змінну `use_aurora`:
+* `true` -> Перехід на Aurora (Terraform знищить RDS і створить Кластер).
+* `false` -> Перехід на RDS (Terraform знищить Кластер і створить Інстанс).
 
-### 🔑 Access Commands
+### 2. Як змінити версію (Engine)?
+Для звичайної RDS змініть `engine_version` та `parameter_group_family_rds`.
+*Приклад:* Оновлення з 14 на 16:
+```hcl
+engine_version             = "16.1"
+parameter_group_family_rds = "postgres16"
+```
 
-| Service              | Command for Password / Address                                                           |
-| :------------------- | :--------------------------------------------------------------------------------------- | ---------------- |
-| **Argo CD Password** | `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo` |
-| **Argo CD URL**      | `kubectl get svc -n argocd` (Look for EXTERNAL-IP for `argocd-server`)                   |
-| **Jenkins Login**    | **admin** / **admin123**                                                                 |
+### 3. Як змінити потужність (Instance Class)?
+Змініть змінну `instance_class`.
+* Для тестів (Free Tier): `db.t3.micro`
+* Для навантаження: `db.r5.large`
+
+---
+
+## 📤 Outputs
+
+Після застосування модуль повертає:
+
+* **`endpoint`**: Адреса для підключення (автоматично вибирає Writer Endpoint для Aurora або Address для RDS).
+* **`port`**: Порт бази даних.
+
