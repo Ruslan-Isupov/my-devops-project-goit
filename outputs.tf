@@ -11,7 +11,7 @@ output "ecr_repository_url" {
 }
 
 # --- EKS Outputs ---
-# Ми звертаємось до МОДУЛЯ (module.eks), а не до ресурсу
+
 output "eks_cluster_name" {
   description = "EKS Cluster Name"
   value       = module.eks.eks_cluster_name
@@ -34,4 +34,9 @@ output "oidc_provider_arn" {
 # --- S3 Backend Output ---
 output "s3_bucket_name" {
   value = module.s3_backend.s3_bucket_name
+}
+
+output "argocd_password_command" {
+  description = "Виконайте цю команду, щоб отримати пароль від Argo CD"
+  value = module.argo_cd.admin_password
 }

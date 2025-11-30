@@ -15,3 +15,8 @@ variable "chart_version" {
   type        = string
   default     = "5.46.4" 
 }
+
+variable "cluster_name" {
+  description = "The name of the EKS cluster"
+  type        = string
+}

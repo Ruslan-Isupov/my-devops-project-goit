@@ -1,10 +1,8 @@
 controller:
-  # Адмін
   admin:
     username: "admin"
     password: "admin123"
 
-  # Таймери (дублюємо тут для надійності)
   startupProbe:
     failureThreshold: 30
     periodSeconds: 10
@@ -17,33 +15,30 @@ controller:
     initialDelaySeconds: 60
     failureThreshold: 3
 
-  # Сервіс
   service:
     type: LoadBalancer
     port: 80
     targetPort: 8080
 
-  # Ресурси
   resources:
     limits:
       cpu: "1000m"
       memory: "2Gi"
     requests:
-      cpu: "500m"
-      memory: "1Gi"
+      # cpu: "500m"
+      # memory: "1Gi"
+      cpu: "200m"
+      memory: "512Mi"
 
-  # Диск
   persistentVolume:
     enabled: true
     storageClass: "ebs-sc"
     size: "10Gi"
 
-  # Service Account (ВАЖЛИВО: вимикаємо створення Helm-ом)
   serviceAccount:
     name: jenkins-sa
     create: false
 
-  # Плагіни
   installPlugins:
     - kubernetes:latest
     - workflow-aggregator:latest
@@ -83,7 +78,6 @@ controller:
                       url('https://github.com/Ruslan-Isupov/goit-devops.git')
                       credentials('github-token')
                     }
-                    # ВАЖЛИВО: Вказуємо нову гілку
                     branches('*/lesson-8-9')
                   }
                 }
@@ -99,7 +93,6 @@ controller:
                                   url("https://github.com/Ruslan-Isupov/goit-devops.git")
                                   credentials("github-token")
                                 }
-                                # ВАЖЛИВО: Тут теж нова гілка
                                 branches("*/lesson-8-9")
                                 scriptPath("Jenkinsfile")
                               }

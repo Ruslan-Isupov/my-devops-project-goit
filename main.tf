@@ -52,7 +52,7 @@ module "eks" {
   vpc_id       = module.vpc.vpc_id 
   subnet_ids   = module.vpc.public_subnet_ids
 
-  # Налаштування нод
+ 
   node_group_name = "general"
   
  
@@ -63,7 +63,7 @@ module "eks" {
   min_size        = 2
 }
 
-# --- НАЛАШТУВАННЯ HELM та KUBERNETES ---
+# --- HELM та KUBERNETES ---
 data "aws_eks_cluster" "cluster" {
   name = module.eks.eks_cluster_name
 }
@@ -72,7 +72,7 @@ data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.eks_cluster_name
 }
 
-# Провайдер для Helm (у вас вже є)
+
 provider "helm" {
   kubernetes {
     host                   = data.aws_eks_cluster.cluster.endpoint
@@ -81,7 +81,7 @@ provider "helm" {
   }
 }
 
-# 👇 ДОДАЙТЕ ЦЕЙ БЛОК ОБОВ'ЯЗКОВО! 👇
+
 provider "kubernetes" {
   host                   = data.aws_eks_cluster.cluster.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
@@ -105,4 +105,9 @@ module "jenkins" {
     helm       = helm
     kubernetes = kubernetes
   }
+}
+# --- 6 Argo_cd ---
+module "argo_cd" {
+  source       = "./modules/argo_cd"  # <--- Змініть на підкреслення (_)
+  cluster_name = module.eks.eks_cluster_name
 }

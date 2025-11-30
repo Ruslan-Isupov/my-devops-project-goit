@@ -1,4 +1,3 @@
-# 1. Встановлення самого Argo CD
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
@@ -13,7 +12,6 @@ resource "helm_release" "argocd" {
   ]
 }
 
-# 2. Встановлення налаштувань (App of Apps)
 resource "helm_release" "argo_apps" {
   name      = "argocd-apps"
   chart     = "${path.module}/charts" # Шлях до локальної папки charts всередині модуля

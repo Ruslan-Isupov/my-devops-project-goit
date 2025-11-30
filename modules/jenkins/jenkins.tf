@@ -18,11 +18,11 @@ resource "kubernetes_storage_class_v1" "ebs_sc" {
   }
 }
 
-# --- 2. IAM Роль для Jenkins (щоб Kaniko міг пушити в ECR) ---
+# --- 2. IAM Роль для Jenkins  ---
 resource "aws_iam_role" "jenkins_kaniko_role" {
   name = "${var.cluster_name}-jenkins-kaniko-role"
 
-  # Trust Policy: Довіряємо нашому OIDC провайдеру EKS
+  # Trust Policy
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
@@ -43,7 +43,7 @@ resource "aws_iam_role" "jenkins_kaniko_role" {
   })
 }
 
-# --- 3. Політика доступу до ECR (Permissions) ---
+# --- 3. ECR (Permissions) ---
 resource "aws_iam_role_policy" "jenkins_ecr_policy" {
   name = "${var.cluster_name}-jenkins-kaniko-ecr-policy"
   role = aws_iam_role.jenkins_kaniko_role.id
@@ -69,7 +69,7 @@ resource "aws_iam_role_policy" "jenkins_ecr_policy" {
   })
 }
 
-# --- 4. Service Account (Місток між Kubernetes і AWS IAM) ---
+# --- 4. Service Account ( Kubernetes і AWS IAM) ---
 resource "kubernetes_service_account" "jenkins_sa" {
   metadata {
     name      = "jenkins-sa"
@@ -80,13 +80,13 @@ resource "kubernetes_service_account" "jenkins_sa" {
     }
   }
 
-  # Створюємо SA тільки після того, як Helm створить namespace 'jenkins'
+  
   depends_on = [
     helm_release.jenkins
   ]
 }
 
-# --- 5. Встановлення Jenkins через Helm ---
+# --- 5. Jenkins через Helm ---
 resource "helm_release" "jenkins" {
   name             = "jenkins"
   namespace        = "jenkins"
@@ -100,9 +100,7 @@ resource "helm_release" "jenkins" {
     file("${path.module}/values.yaml")
   ]
 
-  # --- ВАЖЛИВО: Налаштування таймерів (Startup Probes) ---
-  # Це те, що врятувало нас від помилки CrashLoopBackOff.
-  # Ми примусово даємо Jenkins 5 хвилин на перший старт.
+ 
   
   set {
     name  = "controller.startupProbe.failureThreshold"
