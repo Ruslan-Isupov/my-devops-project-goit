@@ -16,8 +16,6 @@ variable "prometheus_chart_version" {
   default     = "56.6.0" # <--- ВИПРАВЛЕНО
 }
 
-# --- ОБОВ'ЯЗКОВО ДОДАЙТЕ ЦІ ДВІ ЗМІННІ ---
-
 variable "cluster_name" {
   description = "EKS Cluster Name"
   type        = string

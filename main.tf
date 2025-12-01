@@ -157,10 +157,10 @@ module "rds" {
 module "monitoring" {
   source           = "./modules/monitoring"
   
-  # --- Передаємо обов'язкові змінні ---
+
   cluster_name     = module.eks.eks_cluster_name
-  grafana_password = "admin123AWS23" # Пароль для входу в Grafana
-  # ------------------------------------
+  grafana_password = "admin123AWS23" 
+
 
   depends_on = [module.eks]
 }

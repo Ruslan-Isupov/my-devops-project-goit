@@ -6,12 +6,11 @@ resource "helm_release" "prometheus_monitoring" {
   version          = var.prometheus_chart_version
   create_namespace = true
   
-  # --- ГОЛОВНЕ ВИПРАВЛЕННЯ ---
   timeout          = 1200  # Даємо йому 20 хвилин! (було 300 або 600)
   wait             = true
   # ---------------------------
 
-  # Оптимізація (щоб було швидше)
+  
   set {
     name  = "prometheusOperator.admissionWebhooks.enabled"
     value = "false"
