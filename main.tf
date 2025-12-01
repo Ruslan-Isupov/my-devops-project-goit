@@ -58,9 +58,9 @@ module "eks" {
  
   instance_type   = "t3.small" 
   
-  desired_size    = 2
-  max_size        = 3
-  min_size        = 2
+  desired_size    = 3
+  max_size        = 4
+  min_size        = 3
 }
 
 # --- HELM та KUBERNETES ---
@@ -152,4 +152,15 @@ module "rds" {
     Environment = "dev"
     Project     = "myapp"
   }
+}
+# --- 7. Monitoring (Prometheus & Grafana) ---
+module "monitoring" {
+  source           = "./modules/monitoring"
+  
+  # --- Передаємо обов'язкові змінні ---
+  cluster_name     = module.eks.eks_cluster_name
+  grafana_password = "admin123AWS23" # Пароль для входу в Grafana
+  # ------------------------------------
+
+  depends_on = [module.eks]
 }
